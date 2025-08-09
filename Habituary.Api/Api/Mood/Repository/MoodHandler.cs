@@ -1,5 +1,5 @@
-using Habituary.Api.Mood.Entities;
 using Habituary.Api.Repository;
+using Habituary.Core.Entities;
 using Habituary.Data.Context;
 using Habituary.Data.Models;
 using Habituary.Core.Interfaces;

@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Habituary.Api.Mood.Entities;
+using Habituary.Core.Entities;
 using MediatR;
 
 namespace Habituary.Api.Mood.Request

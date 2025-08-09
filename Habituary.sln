@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Habituary.Core", "Habituary
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Habituary.Data", "Habituary.Data\Habituary.Data.csproj", "{786A361A-6F00-4D28-8215-29B86B5FB55C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Habituary.App", "Habituary.App\Habituary.App.csproj", "{CA033E45-AB19-4F14-B9C2-2254515AD448}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{786A361A-6F00-4D28-8215-29B86B5FB55C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{786A361A-6F00-4D28-8215-29B86B5FB55C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{786A361A-6F00-4D28-8215-29B86B5FB55C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA033E45-AB19-4F14-B9C2-2254515AD448}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA033E45-AB19-4F14-B9C2-2254515AD448}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA033E45-AB19-4F14-B9C2-2254515AD448}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA033E45-AB19-4F14-B9C2-2254515AD448}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

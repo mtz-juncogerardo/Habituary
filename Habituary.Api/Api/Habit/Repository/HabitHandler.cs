@@ -1,9 +1,9 @@
-using Habituary.Api.Habit.Entities;
 using Habituary.Data.Context;
 using Habituary.Data.Models;
 using Habituary.Core.Interfaces;
 using Habituary.Api.Repository;
 using Habituary.Api.Request;
+using Habituary.Core.Entities;
 
 namespace Habituary.Api.Habit.Repository;
 

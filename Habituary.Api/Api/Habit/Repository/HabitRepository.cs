@@ -1,4 +1,4 @@
-using Habituary.Api.Habit.Entities;
+using Habituary.Core.Entities;
 using Habituary.Core.Interfaces;
 using Habituary.Data.Context;
 using Habituary.Data.Mapper;
