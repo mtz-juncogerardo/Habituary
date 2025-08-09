@@ -13,6 +13,8 @@ public class HabituaryDbContext : DbContext
     public DbSet<UserRecord> Users { get; set; }
     public DbSet<HabitRecord> Habits { get; set; }
     public DbSet<ReminderRecord> Reminders { get; set; }
+    public DbSet<HabitLogRecord> HabitLogs { get; set; }
+    public DbSet<MoodRecord> Moods { get; set; }
     public DbSet<OauthCredentialRecord> OauthCredentials { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)

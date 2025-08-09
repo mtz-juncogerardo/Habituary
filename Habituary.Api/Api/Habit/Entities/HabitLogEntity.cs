@@ -1,3 +1,4 @@
+using Habituary.Api.Mood.Entities;
 using Habituary.Core.Interfaces;
 
 namespace Habituary.Api.HabitLog.Entities
@@ -9,5 +10,6 @@ namespace Habituary.Api.HabitLog.Entities
         public bool CompletedFlag { get; set; }
         public string Notes { get; set; } = string.Empty;
         public DateTime LogDate { get; set; }
+        public MoodEntity Mood { get; set; }
     }
 }

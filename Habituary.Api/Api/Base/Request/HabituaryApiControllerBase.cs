@@ -42,4 +42,10 @@ public class HabituaryApiControllerBase<TEntity> : BaseController
     {
         return await Mediator.Send(new HabituaryApiRequest<TEntity>.DeleteMany(irns));
     }
+
+    [HttpGet]
+    public async Task<IEnumerable<TEntity>> GetAll()
+    {
+        return await Mediator.Send(new HabituaryApiRequest<TEntity>.GetAll());
+    }
 }

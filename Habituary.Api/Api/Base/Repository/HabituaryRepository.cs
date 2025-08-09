@@ -1,18 +1,19 @@
 using Habituary.Core.Extensions;
 using Habituary.Core.Interfaces;
 using Habituary.Data.Context;
+using Habituary.Data.Mapper;
 using Habituary.Data.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Habituary.Api.Repository;
 
 public sealed class HabituaryRepository<TEntity, TRecord>
-    where TEntity : IEntity
+    where TEntity : IEntity, new()
     where TRecord : BaseIORecord, new()
 {
-    public readonly DbContext _context;
-    public readonly DbSet<TRecord> _dbSet;
-    public readonly ICurrentUser _currentUser;
+    private readonly DbContext _context;
+    private readonly DbSet<TRecord> _dbSet;
+    private readonly ICurrentUser _currentUser;
 
     public HabituaryRepository(HabituaryDbContext context, ICurrentUser currentUser)
     {
@@ -24,31 +25,34 @@ public sealed class HabituaryRepository<TEntity, TRecord>
     public async Task<TEntity> GetByIdAsync(Guid irn)
     {
         var record = await _dbSet.FindAsync(irn);
-        return (TEntity)(object)record;
+        return record == null ? new TEntity() : EntityRecordMapper<TRecord, TEntity>.MapToEntity(record);
     }
 
     public async Task<TEntity> CreateAsync(TEntity entity)
     {
-        var record = (TRecord)(object)entity;
+        var record = EntityRecordMapper<TRecord, TEntity>.MapToRecord(entity);
         record.SetAudit(_currentUser.Email);
         _dbSet.Add(record);
         await _context.SaveChangesAsync();
-        return entity;
+        return EntityRecordMapper<TRecord, TEntity>.MapToEntity(record);
     }
 
     public async Task<TEntity> UpdateAsync(TEntity entity)
     {
-        var record = (TRecord)(object)entity;
+        var record = EntityRecordMapper<TRecord, TEntity>.MapToRecord(entity);
         record.UpdateExisting(_currentUser.Email);
         _dbSet.Update(record);
         await _context.SaveChangesAsync();
-        return entity;
+        return EntityRecordMapper<TRecord, TEntity>.MapToEntity(record);
     }
 
     public async Task<bool> DeleteAsync(Guid irn)
     {
         var record = await _dbSet.FindAsync(irn);
-        if (record == null) return false;
+        if (record == null)
+        {
+            throw new ArgumentNullException(nameof(record), "Record not found");
+        }
         _dbSet.Remove(record);
         await _context.SaveChangesAsync();
         return true;
@@ -57,9 +61,21 @@ public sealed class HabituaryRepository<TEntity, TRecord>
     public async Task<bool> DeleteManyAsync(IEnumerable<Guid> irns)
     {
         var records = await _dbSet.Where(r => irns.Contains(r.IRN)).ToListAsync();
-        if (!records.Any()) return false;
+        if (records.Count == 0)
+        {
+            throw new ArgumentNullException(nameof(records), "No records found to delete");
+        }
         _dbSet.RemoveRange(records);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<IEnumerable<TEntity>> GetAllAsync()
+    {
+        var userIrnProp = typeof(TRecord).GetProperty("UserIRN");
+        if (userIrnProp == null)
+            return [];
+        var records = await _dbSet.Where(r => EF.Property<Guid>(r, "UserIRN") == _currentUser.IRN).ToListAsync();
+        return records.Count == 0 ? [] : records.Select(r => EntityRecordMapper<TRecord, TEntity>.MapToEntity(r));
     }
 }

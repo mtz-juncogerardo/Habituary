@@ -18,12 +18,13 @@ public class HabitRepository
         _currentUser = currentUser;
     }
 
-    public async Task<HabitEntity?> GetById(Guid irn)
+    public async Task<HabitEntity> GetById(Guid irn)
     {
         var record = await _dbContext.Habits.FirstOrDefaultAsync(r => r.IRN == irn);
-        if (record == null || record.UserIRN != _currentUser.IRN)
+        if (record == null)
             return null;
+        if (record.UserIRN != _currentUser.IRN)
+            throw new UnauthorizedAccessException("User does not have access to this habit");
         return EntityRecordMapper<HabitRecord, HabitEntity>.MapToEntity(record);
     }
 }
-

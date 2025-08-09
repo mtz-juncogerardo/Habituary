@@ -1,5 +1,5 @@
 ﻿using Habituary.Api.Authentication.Google;
-using Habituary.Api.Reminder.Repository;
+using Habituary.Api.Habit.Repository;
 using Habituary.Api.User.Repository;
 
 namespace Habituary.Api;
@@ -13,5 +13,6 @@ public static class RepositoryModule
     {
         services.AddScoped<UserRepository>();
         services.AddScoped<GoogleAuthRepository>();
+        services.AddScoped<HabitRepository>();
     }
 }

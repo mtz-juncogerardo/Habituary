@@ -11,5 +11,5 @@ public class HabitRecord : BaseIORecord
     public Frequency Frequency { get; set; }
     public DateTime StartDate { get; set; }
     public ICollection<ReminderRecord> Reminders { get; set; }
-    public ICollection<HabitRecord> HabitLogs { get; set; }
+    public ICollection<HabitLogRecord> HabitLogs { get; set; }
 }
