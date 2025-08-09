@@ -12,6 +12,20 @@ public static class EntityRecordMapper<TRecord, TEntity>
     {
         var record = new TRecord();
         MapProperties(entity, record, extraProperties, true);
+        // Mapear propiedades de navegación (entidades hijas)
+        var entityProps = typeof(TEntity).GetProperties();
+        var recordProps = typeof(TRecord).GetProperties();
+        foreach (var prop in entityProps)
+        {
+            if (!typeof(IEntity).IsAssignableFrom(prop.PropertyType) || prop.GetValue(entity) == null) continue;
+            var recordProp = recordProps.FirstOrDefault(p => p.Name == prop.Name);
+            if (recordProp == null || !typeof(BaseIORecord).IsAssignableFrom(recordProp.PropertyType)) continue;
+            var method = typeof(EntityRecordMapper<,>)
+                .MakeGenericType(recordProp.PropertyType, prop.PropertyType)
+                .GetMethod("MapToRecord");
+            var mapped = method.Invoke(null, new[] { prop.GetValue(entity), null });
+            recordProp.SetValue(record, mapped);
+        }
         return record;
     }
 
@@ -19,6 +33,20 @@ public static class EntityRecordMapper<TRecord, TEntity>
     {
         var entity = new TEntity();
         MapProperties(record, entity, extraProperties, false);
+        // Mapear propiedades de navegación (entidades hijas)
+        var recordProps = typeof(TRecord).GetProperties();
+        var entityProps = typeof(TEntity).GetProperties();
+        foreach (var prop in recordProps)
+        {
+            if (!typeof(BaseIORecord).IsAssignableFrom(prop.PropertyType) || prop.GetValue(record) == null) continue;
+            var entityProp = entityProps.FirstOrDefault(p => p.Name == prop.Name);
+            if (entityProp == null || !typeof(IEntity).IsAssignableFrom(entityProp.PropertyType)) continue;
+            var method = typeof(EntityRecordMapper<,>)
+                .MakeGenericType(prop.PropertyType, entityProp.PropertyType)
+                .GetMethod("MapToEntity");
+            var mapped = method.Invoke(null, new[] { prop.GetValue(record), null });
+            entityProp.SetValue(entity, mapped);
+        }
         return entity;
     }
 
