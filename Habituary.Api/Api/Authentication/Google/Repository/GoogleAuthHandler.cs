@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Habituary.Api.Authentication.Google;
+namespace Habituary.Api.Authentication.Google.Repository;
 
 public class GoogleAuthHandler(GoogleAuthRepository repository)
     : IRequestHandler<GoogleAuthRequest.Login, IActionResult>,

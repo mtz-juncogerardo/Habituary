@@ -22,8 +22,8 @@ public class UserController : BaseController
         return await Mediator.Send(new UserRequest.CheckRegistration(email));
     }
 
-    [HttpPut]
-    public async Task<UserEntity> Update(UserRequest.Update user)
+    [HttpPut("{irn}")]
+    public async Task<UserEntity> Update(string irn, [FromBody]UserRequest.Update user)
     {
         return await Mediator.Send(user);
     }

@@ -1,7 +1,5 @@
 using Habituary.Core.Interfaces;
 using Habituary.Core.Types;
-using System;
-using System.Collections.Generic;
 
 namespace Habituary.Core.Entities;
 

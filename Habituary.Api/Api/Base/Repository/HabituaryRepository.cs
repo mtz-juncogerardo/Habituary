@@ -25,13 +25,14 @@ public sealed class HabituaryRepository<TEntity, TRecord>
     public async Task<TEntity> GetByIdAsync(Guid irn)
     {
         var query = _dbSet.AsQueryable();
+        
         // Incluir todas las propiedades de navegación (tablas foráneas)
         var navigationProperties = typeof(TRecord).GetProperties()
             .Where(p => typeof(BaseIORecord).IsAssignableFrom(p.PropertyType) ||
                         (p.PropertyType.IsGenericType && typeof(IEnumerable<>).IsAssignableFrom(p.PropertyType.GetGenericTypeDefinition())));
         foreach (var navProp in navigationProperties)
         {
-            query = query.Include(navProp.Name);
+            query = query.Include(navProp.Name).AsSplitQuery();
         }
         var record = await query.FirstOrDefaultAsync(r => EF.Property<Guid>(r, "IRN") == irn);
         return record == null ? new TEntity() : EntityRecordMapper<TRecord, TEntity>.MapToEntity(record);
@@ -85,12 +86,14 @@ public sealed class HabituaryRepository<TEntity, TRecord>
         if (userIrnProp == null)
             return Enumerable.Empty<TEntity>();
         var query = _dbSet.AsQueryable();
+        
+        // Incluir todas las propiedades de navegación (tablas foráneas)
         var navigationProperties = typeof(TRecord).GetProperties()
             .Where(p => typeof(BaseIORecord).IsAssignableFrom(p.PropertyType) ||
                         (p.PropertyType.IsGenericType && typeof(IEnumerable<>).IsAssignableFrom(p.PropertyType.GetGenericTypeDefinition())));
         foreach (var navProp in navigationProperties)
         {
-            query = query.Include(navProp.Name);
+            query = query.Include(navProp.Name).AsSplitQuery();
         }
         var records = await query.Where(r => EF.Property<Guid>(r, "UserIRN") == _currentUser.IRN).ToListAsync();
         return records.Select(r => EntityRecordMapper<TRecord, TEntity>.MapToEntity(r));

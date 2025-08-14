@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Habituary.Api;
 
+[Authorize]
 [Route("Api/[controller]")]
 [ApiController]
 public class BaseController : ControllerBase
@@ -13,5 +14,11 @@ public class BaseController : ControllerBase
     public BaseController(IMediator mediator)
     {
         Mediator = mediator;
+    }
+    
+    [HttpGet("ping")]
+    public IActionResult Ping()
+    { 
+        return  Ok("Pong"); 
     }
 }

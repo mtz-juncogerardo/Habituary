@@ -1,5 +1,5 @@
+using System.Security.Claims;
 using Habituary.Core.Extensions;
-using Habituary.Core.Interfaces;
 using Habituary.Core.Types;
 using Habituary.Data.Context;
 using Habituary.Data.Models;
@@ -9,65 +9,104 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Habituary.Api.Authentication.Google;
+namespace Habituary.Api.Authentication.Google.Repository;
 
-public class GoogleAuthRepository(
-    IHttpContextAccessor httpContextAccessor,
-    HabituaryDbContext dbContext,
-    ICurrentUser currentUser)
+public class GoogleAuthRepository
 {
-    private readonly HttpContext _httpContext = httpContextAccessor.HttpContext;
+    private readonly HabituaryDbContext _dbContext;
+    private readonly IConfiguration _configuration;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public async Task<IActionResult> Login(string redirectUrl)
+    public GoogleAuthRepository(
+        IHttpContextAccessor httpContextAccessor,
+        HabituaryDbContext dbContext,
+        IConfiguration configuration)
+    {
+        _httpContextAccessor = httpContextAccessor;
+        _dbContext = dbContext;
+        _configuration = configuration;
+    }
+    
+    public Task<IActionResult> Login(string redirectUrl)
     {
         var properties = new AuthenticationProperties
         {
             RedirectUri = redirectUrl
         };
-        return new ChallengeResult(GoogleDefaults.AuthenticationScheme, properties);
+        return Task.FromResult<IActionResult>(new ChallengeResult(GoogleDefaults.AuthenticationScheme, properties));
     }
     
     public async Task<IActionResult> LoginCallback()
     {
-        var result =
-            await _httpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext == null) return new UnauthorizedResult();
+        var result = await httpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         if (!result.Succeeded) return new UnauthorizedResult();
 
-        var oauthCredential = await dbContext.OauthCredentials.FirstOrDefaultAsync(r =>
-            r.UserIRN == currentUser.IRN
-            && r.AuthType == AuthenticationType.Google);
-        if (oauthCredential == null) CreateOauthCredential();
+        var email = result.Principal?.FindFirst(ClaimTypes.Email)?.Value;
+        if (string.IsNullOrEmpty(email)) return new UnauthorizedResult();
 
-        return new OkResult();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(r => r.Email == email);
+        if (user == null)
+        {
+            user = new UserRecord { Username = email, Email = email };
+            user.SetAudit(email);
+            _dbContext.Users.Add(user);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var identity = result.Principal?.Identity as ClaimsIdentity;
+        if (identity == null) return new UnauthorizedResult();
+
+        if (!identity.HasClaim(c => c.Type == "IRN"))
+        {
+            identity.AddClaim(new Claim("IRN", user.IRN.ToString()));
+            await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+        }
+
+        var oauthCredential = await _dbContext.OauthCredentials.FirstOrDefaultAsync(r =>
+            r.UserIRN == user.IRN && r.AuthType == AuthenticationType.Google);
+        if (oauthCredential == null) CreateOauthCredential(user, email);
+
+        // Nueva lógica: tomar URL de redirección desde configuración específica, con fallback
+        var redirectUrl = _configuration["Authentication:Google:PostLoginRedirectUrl"] ?? _configuration["ClientUrl"]; 
+        if (string.IsNullOrEmpty(redirectUrl)) return new BadRequestObjectResult("Redirect URL is not configured.");
+        return new RedirectResult(redirectUrl);
     }
 
     public async Task<IActionResult> Logout()
     {
-        await _httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return new OkResult();
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext == null)
+        {
+            return new NoContentResult();
+        }
+        await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        httpContext.Session?.Clear();
+        var cookieOpts = new CookieOptions
+        {
+            Path = "/",
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            HttpOnly = true
+        };
+        httpContext.Response.Cookies.Delete("habituary.auth", cookieOpts);
+        httpContext.Response.Cookies.Delete(".AspNetCore.Cookies", cookieOpts);
+        cookieOpts.Expires = DateTimeOffset.UnixEpoch;
+        httpContext.Response.Cookies.Append("habituary.auth", string.Empty, cookieOpts);
+        httpContext.Response.Cookies.Append(".AspNetCore.Cookies", string.Empty, cookieOpts);
+        return new NoContentResult();
     }
 
-    private void CreateOauthCredential()
+    private void CreateOauthCredential(UserRecord user, string auditUser)
     {
-        var user = dbContext.Users.FirstOrDefault(r => r.Email == currentUser.Email);
-        if (user == null)
-        {
-            //It's first time user ever login create new user
-            user = new UserRecord
-            {
-                Username = currentUser.Email,
-                Email = currentUser.Email
-            };
-            user.SetAudit(currentUser.Email);
-        }
-
         var oauthCredential = new OauthCredentialRecord
         {
             User = user,
             AuthType = AuthenticationType.Google
         };
-        oauthCredential.SetAudit(currentUser.Email);
-        dbContext.OauthCredentials.Add(oauthCredential);
-        dbContext.SaveChanges();
+        oauthCredential.SetAudit(auditUser);
+        _dbContext.OauthCredentials.Add(oauthCredential);
+        _dbContext.SaveChanges();
     } 
 }

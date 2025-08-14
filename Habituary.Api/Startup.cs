@@ -23,21 +23,19 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        SetAuthentication(services);
         services.AddControllers();
-        services.AddOptions();
-        services.AddMediatR(Assembly.GetExecutingAssembly());
         services.AddSwaggerGen();
-        services.AddCors(c =>
+        services.AddCors(options =>
         {
-            c.AddPolicy("AllowOrigin",
-                options =>
-                {
-                    options.AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
-                });
+            var clientUrl = _configuration["Authentication:Google:PostLoginRedirectUrl"] ?? _configuration["ClientUrl"] ?? "http://localhost:4200";
+            options.AddPolicy("AllowOrigin",
+                builder => builder
+                    .WithOrigins(clientUrl)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials());
         });
+        services.AddSession();
         // Configurar PostgreSQL con Entity Framework Core
         services.AddDbContext<HabituaryDbContext>(options =>
             options.UseNpgsql(_configuration.GetConnectionString("DefaultConnection"))
@@ -46,6 +44,8 @@ public class Startup
         services.AddHttpContextAccessor();
         RepositoryModule.SetDependencies(services);
         SetDependencyInjection(services);
+        services.AddMediatR(typeof(Startup).Assembly);
+        SetAuthentication(services);
     }
 
     private void SetAuthentication(IServiceCollection services)
@@ -60,15 +60,52 @@ public class Startup
 
         services.AddAuthentication(options =>
             {
-                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme; // devolver 401 en APIs
             })
-            .AddCookie()
+            .AddCookie(options =>
+            {
+                options.Cookie.Name = "habituary.auth"; // nombre consistente
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.None; // requerido para envio cross-site
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // requiere HTTPS
+                options.Cookie.Path = "/";
+                options.Events = new CookieAuthenticationEvents
+                {
+                    OnRedirectToLogin = ctx =>
+                    {
+                        if (IsApiRequest(ctx.Request))
+                        {
+                            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            return Task.CompletedTask;
+                        }
+                        ctx.Response.Redirect(ctx.RedirectUri);
+                        return Task.CompletedTask;
+                    },
+                    OnRedirectToAccessDenied = ctx =>
+                    {
+                        if (IsApiRequest(ctx.Request))
+                        {
+                            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            return Task.CompletedTask;
+                        }
+                        ctx.Response.Redirect(ctx.RedirectUri);
+                        return Task.CompletedTask;
+                    }
+                };
+            })
             .AddGoogle(options =>
             {
                 options.ClientId = _configuration.GetSection("Authentication:Google:ClientId").Value;
                 options.ClientSecret = _configuration.GetSection("Authentication:Google:ClientSecret").Value;
             });
+    }
+
+    private static bool IsApiRequest(HttpRequest request)
+    {
+        return request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
+               || request.Headers["Accept"].Any(h => h.Contains("application/json"));
     }
 
     private void SetDependencyInjection(IServiceCollection services)

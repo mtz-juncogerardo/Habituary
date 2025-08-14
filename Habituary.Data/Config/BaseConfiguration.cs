@@ -11,7 +11,6 @@ public static class BaseConfiguration
         SetDateConfiguration(modelBuilder);
         SetStringConfiguration(modelBuilder);
         SetDecimalConfiguration(modelBuilder);
-        SetEnumConfiguration(modelBuilder);
     }
 
     private static void SetDecimalConfiguration(ModelBuilder modelBuilder)
@@ -24,25 +23,6 @@ public static class BaseConfiguration
         {
             property.SetDefaultValueSql("0");
             property.SetColumnType("numeric(28, 10)");
-        }
-    }
-
-    private static void SetEnumConfiguration(ModelBuilder modelBuilder)
-    {
-        var enumProperties = modelBuilder.Model.GetEntityTypes()
-            .SelectMany(e => e.GetProperties())
-            .Where(p => p.ClrType.IsEnum);
-
-        foreach (var property in enumProperties)
-        {
-            var enumType = property.ClrType;
-            var converter = new ValueConverter<int, int>(
-                v => Convert.ToInt32(v),
-                v => (int)Enum.ToObject(enumType, v)
-            );
-            property.SetDefaultValueSql("0");
-            property.SetColumnType("int");
-            property.SetValueConverter(converter);
         }
     }
 

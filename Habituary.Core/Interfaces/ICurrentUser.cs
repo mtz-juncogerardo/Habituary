@@ -1,6 +1,6 @@
 namespace Habituary.Core.Interfaces;
 
-public class ICurrentUser
+public interface ICurrentUser
 {
     public Guid IRN { get; }
     public string Email { get; }

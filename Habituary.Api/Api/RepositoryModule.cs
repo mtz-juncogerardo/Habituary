@@ -1,4 +1,4 @@
-﻿using Habituary.Api.Authentication.Google;
+﻿using Habituary.Api.Authentication.Google.Repository;
 using Habituary.Api.Habit.Repository;
 using Habituary.Api.User.Repository;
 

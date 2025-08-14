@@ -28,7 +28,6 @@ public class GoogleAuthController : ControllerBase
         return await _mediator.Send(new GoogleAuthRequest.LoginCallback());
     }
 
-    [Authorize]
     [HttpGet(nameof(Logout))]
     public async Task<IActionResult> Logout()
     {
