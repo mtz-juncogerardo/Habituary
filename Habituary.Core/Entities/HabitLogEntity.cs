@@ -1,6 +1,4 @@
 using Habituary.Core.Interfaces;
-using System;
-using System.Collections.Generic;
 
 namespace Habituary.Core.Entities;
 
